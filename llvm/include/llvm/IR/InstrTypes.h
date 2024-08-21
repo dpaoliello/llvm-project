@@ -1279,7 +1279,7 @@ protected:
 
   using Instruction::Instruction;
 
-  bool hasDescriptor() const { return Value::HasDescriptor; }
+  bool hasDescriptor() const { return getOperandInfo().HasDescriptor; }
 
   unsigned getNumSubclassExtraOperands() const {
     switch (getOpcode()) {
