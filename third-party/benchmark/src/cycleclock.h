@@ -75,6 +75,20 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
   // this goes above x86-specific code because old versions of Emscripten
   // define __x86_64__, although they have nothing to do with it.
   return static_cast<int64_t>(emscripten_get_now() * 1e+6);
+#elif defined(COMPILER_MSVC) && defined(_M_IX86)
+  // Older MSVC compilers (like 7.x) don't seem to support the
+  // __rdtsc intrinsic properly, so I prefer to use _asm instead
+  // when I know it will work.  Otherwise, I'll use __rdtsc and hope
+  // the code is being compiled with a non-ancient compiler.
+  _asm rdtsc
+#elif defined(COMPILER_MSVC) && (defined(_M_ARM64) || defined(_M_ARM64EC))
+  // See // https://docs.microsoft.com/en-us/cpp/intrinsics/arm64-intrinsics
+  // and https://reviews.llvm.org/D53115
+  int64_t virtual_timer_value;
+  virtual_timer_value = _ReadStatusReg(ARM64_CNTVCT);
+  return virtual_timer_value;
+#elif defined(COMPILER_MSVC)
+  return __rdtsc();
 #elif defined(__i386__)
   int64_t ret;
   __asm__ volatile("rdtsc" : "=A"(ret));
@@ -109,20 +123,6 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
   int64_t itc;
   asm("mov %0 = ar.itc" : "=r"(itc));
   return itc;
-#elif defined(COMPILER_MSVC) && defined(_M_IX86)
-  // Older MSVC compilers (like 7.x) don't seem to support the
-  // __rdtsc intrinsic properly, so I prefer to use _asm instead
-  // when I know it will work.  Otherwise, I'll use __rdtsc and hope
-  // the code is being compiled with a non-ancient compiler.
-  _asm rdtsc
-#elif defined(COMPILER_MSVC) && (defined(_M_ARM64) || defined(_M_ARM64EC))
-  // See // https://docs.microsoft.com/en-us/cpp/intrinsics/arm64-intrinsics
-  // and https://reviews.llvm.org/D53115
-  int64_t virtual_timer_value;
-  virtual_timer_value = _ReadStatusReg(ARM64_CNTVCT);
-  return virtual_timer_value;
-#elif defined(COMPILER_MSVC)
-  return __rdtsc();
 #elif defined(BENCHMARK_OS_NACL)
   // Native Client validator on x86/x86-64 allows RDTSC instructions,
   // and this case is handled above. Native Client validator on ARM
