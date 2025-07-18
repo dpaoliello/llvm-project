@@ -22,13 +22,13 @@ if(MSVC)
 
   # RTTI/C++ symbols
   set(clang_repl_exports ${clang_repl_exports} ??_7type_info@@6B@,DATA
-    ?__type_info_root_node@@3U__type_info_node@@A
-    ?nothrow@std@@3Unothrow_t@1@B
+    ?__type_info_root_node@@3U__type_info_node@@A,DATA
+    ?nothrow@std@@3Unothrow_t@1@B,DATA
   )
 
   # Compiler added symbols for static variables. NOT for VStudio < 2015
-  set(clang_repl_exports ${clang_repl_exports} _Init_thread_abort _Init_thread_epoch
-    _Init_thread_footer _Init_thread_header _tls_index
+  set(clang_repl_exports ${clang_repl_exports} _Init_thread_abort _Init_thread_epoch,DATA
+    _Init_thread_footer _Init_thread_header _tls_index,DATA
   )
 
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
