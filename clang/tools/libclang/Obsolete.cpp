@@ -19,6 +19,10 @@
 
 extern "C" {
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996) // 'CXRemapping': was declared deprecated
+#endif
+
 // The functions below used to be part of the C API for ARCMigrate, which has
 // since been removed from Clang; they already used to print an error if Clang
 // was compiled without arcmt support, so we continue doing so.

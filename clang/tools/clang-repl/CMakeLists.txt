@@ -1,3 +1,5 @@
+include(CMakePrintHelpers)
+
 set( LLVM_LINK_COMPONENTS
   ${LLVM_TARGETS_TO_BUILD}
   Core
@@ -19,7 +21,7 @@ if(MSVC)
   set_target_properties(clang-repl PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS 1)
 
   # RTTI/C++ symbols
-  set(clang_repl_exports ${clang_repl_exports} ??_7type_info@@6B@
+  set(clang_repl_exports ${clang_repl_exports} ??_7type_info@@6B@,DATA
     ?__type_info_root_node@@3U__type_info_node@@A
     ?nothrow@std@@3Unothrow_t@1@B
   )
@@ -50,7 +52,10 @@ if(MSVC)
   endif()
 
   # List to '/EXPORT:sym0 /EXPORT:sym1 /EXPORT:sym2 ...'
-  list(TRANSFORM clang_repl_exports PREPEND "LINKER:/EXPORT:")
+  # The 'SHELL' prefix tells CMake to use a space instead of comma as the
+  # separator between the driver and linker options, which we need since MSVC's
+  # linker uses `,DATA` as a suffix to indicate that data is being exported.
+  list(TRANSFORM clang_repl_exports PREPEND "LINKER:SHELL:/EXPORT:")
 
   set_property(TARGET clang-repl APPEND PROPERTY LINK_OPTIONS ${clang_repl_exports})
 
