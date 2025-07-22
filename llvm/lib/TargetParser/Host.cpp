@@ -2070,7 +2070,7 @@ StringMap<bool> sys::getHostCPUFeatures() {
   return Features;
 }
 #elif defined(__linux__) &&                                                    \
-    (defined(__arm__) || defined(__aarch64__) || defined(__arm64ec__))
+    (defined(__arm__) || defined(__aarch64__))
 StringMap<bool> sys::getHostCPUFeatures() {
   StringMap<bool> Features;
   std::unique_ptr<llvm::MemoryBuffer> P = getProcCpuinfoContent();
@@ -2150,7 +2150,7 @@ StringMap<bool> sys::getHostCPUFeatures() {
 
   return Features;
 }
-#elif defined(_WIN32) && (defined(__aarch64__) || defined(_M_ARM64))
+#elif defined(_WIN32) && (defined(__aarch64__) || defined(_M_ARM64) || defined(__arm64ec__) || defined(_M_ARM64EC))
 StringMap<bool> sys::getHostCPUFeatures() {
   StringMap<bool> Features;
 
