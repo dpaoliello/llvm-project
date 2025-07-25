@@ -2,8 +2,8 @@
 ; specific implementation details.
 
 ; RUN: llc < %s -stackrealign | FileCheck %s
-; CHECK-LABEL: @f
-; CHECK-LABEL: @g
+; CHECK-LABEL: @"#f"
+; CHECK-LABEL: @"#g"
 
 ; NVPTX can only select dynamic_stackalloc on sm_52+ and with ptx73+
 ; XFAIL: target=nvptx{{.*}}
