@@ -208,12 +208,11 @@ StringRef sys::detail::getHostCPUNameForARM(StringRef ProcCpuinfoContent) {
   return getHostCPUNameForARM(Implementer, Hardware, Part, Parts, GetVariant);
 }
 
-StringRef sys::detail::getHostCPUNameForARM(StringRef Implementer,
-                                        StringRef Hardware,
-                                        StringRef Part,
-                                        ArrayRef<StringRef> Parts,
-                                      function_ref<unsigned()> GetVariant) {
-                        
+StringRef
+sys::detail::getHostCPUNameForARM(StringRef Implementer, StringRef Hardware,
+                                  StringRef Part, ArrayRef<StringRef> Parts,
+                                  function_ref<unsigned()> GetVariant) {
+
   auto MatchBigLittle = [](auto const &Parts, StringRef Big, StringRef Little) {
     if (Parts.size() == 2)
       return (Parts[0] == Big && Parts[1] == Little) ||
@@ -1465,16 +1464,15 @@ StringRef sys::getHostCPUName() {
 
 #elif defined(_M_ARM64) || defined(_M_ARM64EC)
 
-union MIDR_EL1
-{
+union MIDR_EL1 {
   uint64_t Raw;
   struct _Parts {
-      uint64_t Revision : 4;
-      uint64_t Partnum : 12;
-      uint64_t Architecture : 4;
-      uint64_t Variant : 4;
-      uint64_t Implementer : 8;
-      uint64_t Reserved : 32;
+    uint64_t Revision : 4;
+    uint64_t Partnum : 12;
+    uint64_t Architecture : 4;
+    uint64_t Variant : 4;
+    uint64_t Implementer : 8;
+    uint64_t Reserved : 32;
   } Parts;
 };
 
@@ -1483,17 +1481,22 @@ StringRef sys::getHostCPUName() {
 
   // The "CP 4000" registry key contains a cached copy of the MIDR_EL1 register.
   HKEY Key;
-  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &Key) == ERROR_SUCCESS) {
+  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+                    "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0,
+                    KEY_READ, &Key) == ERROR_SUCCESS) {
     MIDR_EL1 RegValue;
     DWORD ActualType;
     DWORD RegValueSize = sizeof(RegValue);
-    if ((RegQueryValueExA(Key, "CP 4000", nullptr, &ActualType, (PBYTE)&RegValue, &RegValueSize) == ERROR_SUCCESS) && (ActualType == REG_QWORD) && RegValueSize == sizeof(RegValue)) {
-      auto Part = "0x" + utohexstr(RegValue.Parts.Partnum, /*LowerCase*/ true, /*Width*/ 3);
-      CPU = detail::getHostCPUNameForARM("0x" + utohexstr(RegValue.Parts.Implementer, /*LowerCase*/ true, /*Width*/ 2),
-                                          /*Hardware*/ "",
-                                         Part,
-                                         ArrayRef<StringRef>{ Part },
-                                         [=]() { return RegValue.Parts.Variant; });
+    if ((RegQueryValueExA(Key, "CP 4000", nullptr, &ActualType,
+                          (PBYTE)&RegValue, &RegValueSize) == ERROR_SUCCESS) &&
+        (ActualType == REG_QWORD) && RegValueSize == sizeof(RegValue)) {
+      auto Part = "0x" + utohexstr(RegValue.Parts.Partnum, /*LowerCase*/ true,
+                                   /*Width*/ 3);
+      CPU = detail::getHostCPUNameForARM(
+          "0x" + utohexstr(RegValue.Parts.Implementer, /*LowerCase*/ true,
+                           /*Width*/ 2),
+          /*Hardware*/ "", Part, ArrayRef<StringRef>{Part},
+          [=]() { return RegValue.Parts.Variant; });
     }
     RegCloseKey(Key);
   }

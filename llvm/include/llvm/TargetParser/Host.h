@@ -66,10 +66,9 @@ namespace detail {
 LLVM_ABI StringRef getHostCPUNameForPowerPC(StringRef ProcCpuinfoContent);
 LLVM_ABI StringRef getHostCPUNameForARM(StringRef ProcCpuinfoContent);
 LLVM_ABI StringRef getHostCPUNameForARM(StringRef Implementer,
-                                        StringRef Hardware,
-                                        StringRef Part,
+                                        StringRef Hardware, StringRef Part,
                                         ArrayRef<StringRef> Parts,
-                                      function_ref<unsigned()> GetVariant);
+                                        function_ref<unsigned()> GetVariant);
 LLVM_ABI StringRef getHostCPUNameForS390x(StringRef ProcCpuinfoContent);
 LLVM_ABI StringRef getHostCPUNameForRISCV(StringRef ProcCpuinfoContent);
 LLVM_ABI StringRef getHostCPUNameForSPARC(StringRef ProcCpuinfoContent);
