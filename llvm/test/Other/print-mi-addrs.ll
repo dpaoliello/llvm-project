@@ -2,7 +2,7 @@
 ; REQUIRES: default_triple
 
 ; CHECK: IR Dump {{.*}}
-; CHECK: # Machine code for function foo{{.*}}
+; CHECK: # Machine code for function #foo{{.*}}
 
 define void @foo() {
   ; CHECK: ; 0x

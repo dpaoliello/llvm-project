@@ -434,7 +434,8 @@ CMAKE_DEPENDENT_OPTION(CLANG_PLUGIN_SUPPORT
 # If libstdc++ is statically linked, clang-repl needs to statically link libstdc++
 # itself, which is not possible in many platforms because of current limitations in
 # JIT stack. (more platforms need to be supported by JITLink)
-if(NOT LLVM_STATIC_LINK_CXX_STDLIB)
+check_symbol_exists(_M_ARM64EC "" IS_ARM64EC)
+if(NOT LLVM_STATIC_LINK_CXX_STDLIB AND NOT IS_ARM64EC)
   set(HAVE_CLANG_REPL_SUPPORT ON)
 endif()
 

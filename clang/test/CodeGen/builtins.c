@@ -523,7 +523,7 @@ void test_float_builtin_ops(float F, double D, long double LD, int I) {
 }
 
 // __builtin_longjmp isn't supported on all platforms, so only test it on X86.
-#ifdef __x86_64__
+#if defined(__x86_64__) && !defined(__arm64ec__)
 
 // CHECK-LABEL: define{{.*}} void @test_builtin_longjmp(ptr{{.*}}
 void test_builtin_longjmp(void **buffer) {
@@ -578,7 +578,7 @@ void test___warn_memset_zero_len(void) {
 }
 
 // Behavior of __builtin_os_log differs between platforms, so only test on X86
-#ifdef __x86_64__
+#if defined(__x86_64__) && !defined(__arm64ec__)
 
 // CHECK-LABEL: define{{.*}} void @test_builtin_os_log
 // CHECK: (ptr noundef %[[BUF:.*]], i32 noundef %[[I:.*]], ptr noundef %[[DATA:.*]])

@@ -1,4 +1,4 @@
-; RUN: llc -verify-machine-dom-info < %s | not grep test_
+; RUN: llc -verify-machine-dom-info < %s | not grep -P '(?<!#)test_'
 
 ; XFAIL: target={{.*}}-aix{{.*}}
 ; AIX system assembler default print error for undefined reference .

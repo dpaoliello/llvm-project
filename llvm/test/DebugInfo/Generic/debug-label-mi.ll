@@ -3,8 +3,8 @@
 ; RUN: llc -debug-only=isel %s -o /dev/null 2> %t.debug
 ; RUN: cat %t.debug | FileCheck %s --check-prefix=CHECKMI
 ;
-; CHECKMI: DBG_LABEL "top", debug-location !9
-; CHECKMI: DBG_LABEL "done", debug-location !11
+; CHECKMI: DBG_LABEL "top", debug-location !10
+; CHECKMI: DBG_LABEL "done", debug-location !12
 ;
 ; RUN: llc %s -o - | FileCheck %s --check-prefix=CHECKASM
 ;

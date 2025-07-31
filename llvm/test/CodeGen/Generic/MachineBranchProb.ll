@@ -8,7 +8,7 @@ declare void @foo()
 
 ; Make sure we have the correct weight attached to each successor.
 define i32 @test2(i32 %x) nounwind uwtable readnone ssp {
-; CHECK-LABEL: Machine code for function test2:
+; CHECK-LABEL: Machine code for function #test2:
 entry:
   %conv = sext i32 %x to i64
   switch i64 %conv, label %return [
@@ -66,7 +66,7 @@ return: ret void
 ; Cases {0,100,200,300} go on the left with weight 13; cases {400,500} go on the
 ; right with weight 20.
 ;
-; CHECK-LABEL: Machine code for function left_leaning_weight_balanced_tree:
+; CHECK-LABEL: Machine code for function #left_leaning_weight_balanced_tree:
 ; CHECK: bb.0.entry:
 ; CHECK-NOT: Successors
 ; CHECK: successors: %bb.8(0x32d2d2d3), %bb.9(0x4d2d2d2d)
