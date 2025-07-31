@@ -197,6 +197,22 @@ StringRef sys::detail::getHostCPUNameForARM(StringRef ProcCpuinfoContent) {
   llvm::sort(Parts);
   Parts.erase(llvm::unique(Parts), Parts.end());
 
+  auto GetVariant = [&]() {
+    unsigned Variant = 0;
+    for (auto I : Lines)
+      if (I.consume_front("CPU variant"))
+        I.ltrim("\t :").getAsInteger(0, Variant);
+    return Variant;
+  };
+
+  return getHostCPUNameForARM(Implementer, Hardware, Part, Parts, GetVariant);
+}
+
+StringRef
+sys::detail::getHostCPUNameForARM(StringRef Implementer, StringRef Hardware,
+                                  StringRef Part, ArrayRef<StringRef> Parts,
+                                  function_ref<unsigned()> GetVariant) {
+
   auto MatchBigLittle = [](auto const &Parts, StringRef Big, StringRef Little) {
     if (Parts.size() == 2)
       return (Parts[0] == Big && Parts[1] == Little) ||
@@ -343,21 +359,17 @@ StringRef sys::detail::getHostCPUNameForARM(StringRef ProcCpuinfoContent) {
   if (Implementer == "0x53") { // Samsung Electronics Co., Ltd.
     // The Exynos chips have a convoluted ID scheme that doesn't seem to follow
     // any predictive pattern across variants and parts.
-    unsigned Variant = 0, Part = 0;
 
     // Look for the CPU variant line, whose value is a 1 digit hexadecimal
     // number, corresponding to the Variant bits in the CP15/C0 register.
-    for (auto I : Lines)
-      if (I.consume_front("CPU variant"))
-        I.ltrim("\t :").getAsInteger(0, Variant);
+    unsigned Variant = GetVariant();
 
-    // Look for the CPU part line, whose value is a 3 digit hexadecimal
-    // number, corresponding to the PartNum bits in the CP15/C0 register.
-    for (auto I : Lines)
-      if (I.consume_front("CPU part"))
-        I.ltrim("\t :").getAsInteger(0, Part);
+    // Convert the CPU part line, whose value is a 3 digit hexadecimal number,
+    // corresponding to the PartNum bits in the CP15/C0 register.
+    unsigned PartAsInt;
+    Part.getAsInteger(0, PartAsInt);
 
-    unsigned Exynos = (Variant << 12) | Part;
+    unsigned Exynos = (Variant << 12) | PartAsInt;
     switch (Exynos) {
     default:
       // Default by falling through to Exynos M3.
@@ -1448,6 +1460,48 @@ StringRef sys::getHostCPUName() {
     return CPU;
 
   return "generic";
+}
+
+#elif defined(_M_ARM64) || defined(_M_ARM64EC)
+
+union MIDR_EL1 {
+  uint64_t Raw;
+  struct _Parts {
+    uint64_t Revision : 4;
+    uint64_t Partnum : 12;
+    uint64_t Architecture : 4;
+    uint64_t Variant : 4;
+    uint64_t Implementer : 8;
+    uint64_t Reserved : 32;
+  } Parts;
+};
+
+StringRef sys::getHostCPUName() {
+  StringRef CPU = "generic";
+
+  // The "CP 4000" registry key contains a cached copy of the MIDR_EL1 register.
+  HKEY Key;
+  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+                    "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0,
+                    KEY_READ, &Key) == ERROR_SUCCESS) {
+    MIDR_EL1 RegValue;
+    DWORD ActualType;
+    DWORD RegValueSize = sizeof(RegValue);
+    if ((RegQueryValueExA(Key, "CP 4000", nullptr, &ActualType,
+                          (PBYTE)&RegValue, &RegValueSize) == ERROR_SUCCESS) &&
+        (ActualType == REG_QWORD) && RegValueSize == sizeof(RegValue)) {
+      auto Part = "0x" + utohexstr(RegValue.Parts.Partnum, /*LowerCase*/ true,
+                                   /*Width*/ 3);
+      CPU = detail::getHostCPUNameForARM(
+          "0x" + utohexstr(RegValue.Parts.Implementer, /*LowerCase*/ true,
+                           /*Width*/ 2),
+          /*Hardware*/ "", Part, ArrayRef<StringRef>{Part},
+          [=]() { return RegValue.Parts.Variant; });
+    }
+    RegCloseKey(Key);
+  }
+
+  return CPU;
 }
 
 #elif defined(__APPLE__) && defined(__powerpc__)
