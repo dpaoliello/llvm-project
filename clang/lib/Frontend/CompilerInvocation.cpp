@@ -4454,7 +4454,7 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
              : VerParts.first.size() == Ver.size() || VerParts.second == "0")) {
       // Got a valid version number.
 #define ABI_VER_MAJOR_MINOR(Major_, Minor_)                                    \
-  if (std::tie(Major, Minor) <= std::tuple(Major_, Minor_))                    \
+  if (std::tuple(Major, Minor) <= std::tuple<unsigned, unsigned>(Major_, Minor_))  \
     Opts.setClangABICompat(LangOptions::ClangABI::Ver##Major_##_##Minor_);     \
   else
 #define ABI_VER_MAJOR(Major_)                                                  \

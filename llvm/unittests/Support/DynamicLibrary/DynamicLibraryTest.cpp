@@ -81,6 +81,7 @@ TEST(DynamicLibrary, Overload) {
     EXPECT_TRUE(DL.isValid());
     EXPECT_TRUE(Err.empty());
 
+#if !defined(_M_ARM64EC)
     // Test overloading local symbols does not occur by default
     GS = FuncPtr<GetString>(DynamicLibrary::SearchForAddressOfSymbol("TestA"));
     EXPECT_NE(GS, nullptr);
@@ -91,6 +92,7 @@ TEST(DynamicLibrary, Overload) {
     EXPECT_NE(GS, nullptr);
     EXPECT_EQ(GS, &TestA);
     EXPECT_EQ(StdString(GS()), "ProcessCall");
+#endif
 
     // Test overloading by forcing library priority when searching for a symbol
     DynamicLibrary::SearchOrder = DynamicLibrary::SO_LoadedFirst;

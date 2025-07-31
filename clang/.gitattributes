@@ -1,0 +1,6 @@
+# These files must have LF line endings because the test requires exact matching
+test/AST/ast-dump-*.c eol=lf
+test/AST/ast-dump-*.cpp eol=lf
+test/Analysis/diagnostics/sarif-*-test.c eol=lf
+test/ClangScanDeps/raw-strings.cpp eol=lf
+test/CXX/drs/*.cpp eol=lf

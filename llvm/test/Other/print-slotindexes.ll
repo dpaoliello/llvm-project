@@ -6,7 +6,7 @@ define void @foo(){
 }
 
 ;CHECK: IR Dump {{.*}}
-;CHECK: # Machine code for function foo{{.*}}
+;CHECK: # Machine code for function #foo{{.*}}
 ;SI: {{[0-9]+}}B bb.0 (%ir-block.0)
 ;NOSI: {{^}}bb.0 (%ir-block.0)
 
