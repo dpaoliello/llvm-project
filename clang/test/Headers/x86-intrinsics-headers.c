@@ -2,7 +2,7 @@
 // RUN: %clang_cc1 -fsyntax-only -ffreestanding -flax-vector-conversions=none %s
 // RUN: %clang_cc1 -fsyntax-only -ffreestanding -x c++ %s
 
-#if defined(i386) || defined(__x86_64__)
+#if (defined(i386) || defined(__x86_64__)) && !defined(__arm64ec__)
 
 #ifdef __SSE4_2__
 // nmmintrin forwards to smmintrin.

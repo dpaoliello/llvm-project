@@ -2,7 +2,7 @@
 // RUN: %clang_cc1 -fsyntax-only -D_CLANG_DISABLE_CRT_DEPRECATION_WARNINGS -ffreestanding %s -verify
 // RUN: %clang_cc1 -fsyntax-only -ffreestanding -x c++ %s -verify
 
-#if defined(i386) || defined(__x86_64__)
+#if (defined(i386) || defined(__x86_64__)) && !defined(__arm64ec__)
 #ifndef _CLANG_DISABLE_CRT_DEPRECATION_WARNINGS
 // expected-warning@mm3dnow.h:*{{The <mm3dnow.h> header is deprecated}}
 #else

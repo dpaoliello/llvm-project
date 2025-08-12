@@ -2,7 +2,7 @@
 // RUN: %clang_cc1 -fsyntax-only -ffreestanding -x c++ %s -verify
 // expected-no-diagnostics
 
-#if defined(i386) || defined(__x86_64__)
+#if (defined(i386) || defined(__x86_64__)) && !defined(__arm64ec__)
 #include <pmmintrin.h>
 
 int __attribute__((__target__(("sse3")))) foo(int a) {

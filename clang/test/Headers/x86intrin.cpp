@@ -1,7 +1,7 @@
 // RUN: %clang_cc1 -fsyntax-only -ffreestanding %s -verify
 // expected-no-diagnostics
 
-#if defined(i386) || defined(__x86_64__)
+#if (defined(i386) || defined(__x86_64__)) && !defined(__arm64ec__)
 
 // Include the metaheader that includes all x86 intrinsic headers.
 extern "C++" {
