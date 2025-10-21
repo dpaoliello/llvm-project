@@ -63,11 +63,38 @@ entry:
 ; CHECK-NEXT:   .Limpcall6:
 ; CHECK-NEXT:     rex64 jmpq      *%rax
 
+; Regression test: conditional tail calls can't be encoded, so make sure they aren't emitted.
+define void @might_call(i1 %4) local_unnamed_addr {
+  br i1 %4, label %makecall, label %finish
+
+makecall:
+  tail call void @a()
+  br label %finish
+
+finish:
+  ret void
+}
+; CHECK-LABEL:  might_call:
+; CHECK:          testb   $1, %cl
+; CHECK-NEXT:     je      .LBB[[FINISHLABEL:[0-9_]*]]
+; CHECK:        .Limpcall7:
+; CHECK-NEXT:     jmp     __imp_a
+; CHECK-NEXT:   .LBB[[FINISHLABEL]]:
+; CHECK-NEXT:     retq
+
 declare dllimport void @a() local_unnamed_addr
 declare dllimport void @b() local_unnamed_addr
 
 ; CHECK-LABEL  .section   .retplne,"yi"
 ; CHECK-NEXT   .asciz  "RetpolineV1"
+; CHECK-NEXT   .long   32
+; CHECK-NEXT   .secnum tc_sect
+; CHECK-NEXT   .long   2
+; CHECK-NEXT   .secoffset      .Limpcall4
+; CHECK-NEXT   .long   4
+; CHECK-NEXT   .secoffset      .Limpcall5
+; CHECK-NEXT   .long   4
+; CHECK-NEXT   .secoffset      .Limpcall6
 ; CHECK-NEXT   .long   40
 ; CHECK-NEXT   .secnum nc_sect
 ; CHECK-NEXT   .long   3
@@ -78,14 +105,10 @@ declare dllimport void @b() local_unnamed_addr
 ; CHECK-NEXT   .secoffset      .Limpcall2
 ; CHECK-NEXT   .long   5
 ; CHECK-NEXT   .secoffset      .Limpcall3
-; CHECK-NEXT   .long   32
-; CHECK-NEXT   .secnum tc_sect
+; CHECK-NEXT   .long   16
+; CHECK-NEXT   .secnum .text
 ; CHECK-NEXT   .long   2
-; CHECK-NEXT   .secoffset      .Limpcall4
-; CHECK-NEXT   .long   4
-; CHECK-NEXT   .secoffset      .Limpcall5
-; CHECK-NEXT   .long   4
-; CHECK-NEXT   .secoffset      .Limpcall6
+; CHECK-NEXT   .secoffset      .Limpcall7
 
 !llvm.module.flags = !{!0}
 !0 = !{i32 1, !"import-call-optimization", i32 1}
