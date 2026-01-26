@@ -31,8 +31,8 @@ public:
 /// Insert Control Flow Guard checks on indirect function calls.
 LLVM_ABI FunctionPass *createCFGuardPass();
 
-LLVM_ABI bool isCFGuardCall(const CallBase *CB);
-LLVM_ABI bool isCFGuardFunction(const GlobalValue *GV);
+LLVM_ABI bool isCFGuardDispatchCall(const CallBase *CB);
+LLVM_ABI bool isCFGuardDispatchFunction(const GlobalValue *GV);
 
 } // namespace llvm
 

@@ -315,15 +315,11 @@ INITIALIZE_PASS(CFGuard, "CFGuard", "CFGuard", false, false)
 
 FunctionPass *llvm::createCFGuardPass() { return new CFGuard(); }
 
-bool llvm::isCFGuardCall(const CallBase *CB) {
-  return CB->getCallingConv() == CallingConv::CFGuard_Check ||
-         CB->countOperandBundlesOfType(LLVMContext::OB_cfguardtarget);
+bool llvm::isCFGuardDispatchCall(const CallBase *CB) {
+  return CB->countOperandBundlesOfType(LLVMContext::OB_cfguardtarget);
 }
 
-bool llvm::isCFGuardFunction(const GlobalValue *GV) {
-  if (GV->getLinkage() != GlobalValue::ExternalLinkage)
-    return false;
-
-  StringRef Name = GV->getName();
-  return Name == GuardCheckFunctionName || Name == GuardDispatchFunctionName;
+bool llvm::isCFGuardDispatchFunction(const GlobalValue *GV) {
+  return GV->getLinkage() == GlobalValue::ExternalLinkage &&
+    GV->getName() == GuardDispatchFunctionName;
 }

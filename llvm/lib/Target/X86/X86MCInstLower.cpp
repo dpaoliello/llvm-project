@@ -2209,13 +2209,13 @@ bool isImportedFunction(const MachineOperand &MO) {
   return MO.isGlobal() && (MO.getTargetFlags() == X86II::MO_DLLIMPORT);
 }
 
-// Is the given instruction a call to a CFGuard function?
-bool isCallToCFGuardFunction(const MachineInstr *MI) {
+// Is the given instruction a call to a CFGuard dispatch function?
+bool isCallToCFGuardDispatchFunction(const MachineInstr *MI) {
   assert(MI->getOpcode() == X86::TAILJMPm64_REX ||
          MI->getOpcode() == X86::CALL64m);
   const MachineOperand &MO = MI->getOperand(3);
   return MO.isGlobal() && (MO.getTargetFlags() == X86II::MO_NO_FLAG) &&
-         isCFGuardFunction(MO.getGlobal());
+         isCFGuardDispatchFunction(MO.getGlobal());
 }
 
 // Does the containing block for the given instruction contain any jump table
@@ -2339,7 +2339,7 @@ void X86AsmPrinter::emitInstruction(const MachineInstr *MI) {
 
   case X86::TAILJMPm64_REX:
     if (EnableImportCallOptimization) {
-      if (isCallToCFGuardFunction(MI)) {
+      if (isCallToCFGuardDispatchFunction(MI)) {
         emitLabelAndRecordForImportCallOptimization(
             IMAGE_RETPOLINE_AMD64_CFG_BR_REX);
       } else if (isImportedFunction(MI->getOperand(3))) {
@@ -2616,7 +2616,7 @@ void X86AsmPrinter::emitInstruction(const MachineInstr *MI) {
 
   case X86::CALL64m:
     if (EnableImportCallOptimization) {
-      if (isCallToCFGuardFunction(MI)) {
+      if (isCallToCFGuardDispatchFunction(MI)) {
         emitLabelAndRecordForImportCallOptimization(
             IMAGE_RETPOLINE_AMD64_CFG_CALL);
       } else if (isImportedFunction(MI->getOperand(3))) {

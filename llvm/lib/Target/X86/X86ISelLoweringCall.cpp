@@ -2081,7 +2081,7 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   if (MF.getTarget().Options.EmitCallGraphSection && CB && CB->isIndirectCall())
     CSInfo = MachineFunction::CallSiteInfo(*CB);
 
-  if (IsIndirectCall && !IsWin64 &&
+  if (IsIndirectCall && !IsWin64 && CallConv != CallingConv::CFGuard_Check &&
       M->getModuleFlag("import-call-optimization"))
     errorUnsupported(DAG, dl,
                      "Indirect calls must have a normal calling convention if "
@@ -2525,7 +2525,7 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   }
 
   bool IsImpCall = false;
-  bool IsCFGuardCall = false;
+  bool IsCFGuardDispatchCall = false;
   if (DAG.getTarget().getCodeModel() == CodeModel::Large) {
     assert(Is64Bit && "Large code model is only legal in 64-bit mode.");
     // In the 64-bit large code model, we have to make all calls
@@ -2543,16 +2543,16 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
              Callee.getValueType() == MVT::i32) {
     // Zero-extend the 32-bit Callee address into a 64-bit according to x32 ABI
     Callee = DAG.getNode(ISD::ZERO_EXTEND, dl, MVT::i64, Callee);
-  } else if (Is64Bit && CB && isCFGuardCall(CB)) {
+  } else if (Is64Bit && CB && isCFGuardDispatchCall(CB)) {
     // We'll use a specific psuedo instruction for tail calls to control flow
     // guard functions to guarantee the instruction used for the call. To do
     // this we need to unwrap the load now and use the CFG Func GV as the
     // callee.
-    IsCFGuardCall = true;
+    IsCFGuardDispatchCall = true;
     auto *LoadNode = cast<LoadSDNode>(Callee);
     GlobalAddressSDNode *GA =
         cast<GlobalAddressSDNode>(unwrapAddress(LoadNode->getBasePtr()));
-    assert(isCFGuardFunction(GA->getGlobal()) &&
+    assert(isCFGuardDispatchFunction(GA->getGlobal()) &&
            "CFG Call should be to a guard function");
     assert(LoadNode->getOffset()->isUndef() &&
            "CFG Function load should not have an offset");
@@ -2668,7 +2668,7 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     // should be computed from returns not tail calls.  Consider a void
     // function making a tail call to a function returning int.
     MF.getFrameInfo().setHasTailCall();
-    auto Opcode = (IsCFGuardCall || IsImpCall) ? X86ISD::TC_RETURN_GLOBALADDR
+    auto Opcode = (IsCFGuardDispatchCall || IsImpCall) ? X86ISD::TC_RETURN_GLOBALADDR
                                                : X86ISD::TC_RETURN;
     SDValue Ret = DAG.getNode(Opcode, dl, MVT::Other, Ops);
 
@@ -2684,7 +2684,7 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
   if (IsNoTrackIndirectCall) {
     Chain = DAG.getNode(X86ISD::NT_CALL, dl, NodeTys, Ops);
-  } else if (IsCFGuardCall || IsImpCall) {
+  } else if (IsCFGuardDispatchCall || IsImpCall) {
     Chain = DAG.getNode(X86ISD::CALL_GLOBALADDR, dl, NodeTys, Ops);
   } else if (CLI.CB && objcarc::hasAttachedCallOpBundle(CLI.CB)) {
     // Calls with a "clang.arc.attachedcall" bundle are special. They should be

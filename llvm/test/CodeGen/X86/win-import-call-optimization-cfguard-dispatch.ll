@@ -147,6 +147,7 @@ define dso_local void @invoke_many_args(ptr %0, ptr %1, ptr %2) personality ptr 
 ; OBJ-LABEL:  <tc_sect>:
 ; OBJ:        : 48 ff 25 00 00 00 00          jmpq    *(%rip)
 
-!llvm.module.flags = !{!0, !1}
+!llvm.module.flags = !{!0, !1, !2}
 !0 = !{i32 1, !"import-call-optimization", i32 1}
 !1 = !{i32 2, !"cfguard", i32 2}
+!2 = !{i32 2, !"cfguard-mechanism", i32 2}
