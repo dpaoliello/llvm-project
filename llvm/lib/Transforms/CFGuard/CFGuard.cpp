@@ -31,8 +31,11 @@ using OperandBundleDef = OperandBundleDefT<Value *>;
 
 STATISTIC(CFGuardCounter, "Number of Control Flow Guard checks added");
 
-constexpr StringRef GuardCheckFunctionName = "__guard_check_icall_fptr";
-constexpr StringRef GuardDispatchFunctionName = "__guard_dispatch_icall_fptr";
+constexpr StringRef GuardCheckIndirectFunctionName = "__guard_check_icall_fptr";
+constexpr StringRef GuardDispatchIndirectFunctionName =
+    "__guard_dispatch_icall_fptr";
+constexpr StringRef GuardCheckDirectFunctionName = "__guard_check_icall";
+constexpr StringRef GuardDispatchDirectFunctionName = "__guard_dispatch_icall";
 
 namespace {
 
@@ -136,9 +139,10 @@ private:
   // Only add checks if the module has them enabled.
   ControlFlowGuardMode CFGuardModuleFlag = ControlFlowGuardMode::Disabled;
   Mechanism GuardMechanism = Mechanism::Check;
+  bool CallGuardFunctionDirectly = false;
   FunctionType *GuardFnType = nullptr;
-  PointerType *GuardFnPtrType = nullptr;
-  Constant *GuardFnGlobal = nullptr;
+  PointerType *GuardFnIndirectPtrType = nullptr;
+  Value *GuardFnGlobal = nullptr;
 };
 
 class CFGuard : public FunctionPass {
@@ -172,12 +176,15 @@ void CFGuardImpl::insertCFGuardCheck(CallBase *CB) {
     Bundles.push_back(OperandBundleDef(*Bundle));
 
   // Load the global symbol as a pointer to the check function.
-  LoadInst *GuardCheckLoad = B.CreateLoad(GuardFnPtrType, GuardFnGlobal);
+  Value *GuardCheckCallee =
+      CallGuardFunctionDirectly
+          ? GuardFnGlobal
+          : B.CreateLoad(GuardFnIndirectPtrType, GuardFnGlobal);
 
   // Create new call instruction. The CFGuard check should always be a call,
   // even if the original CallBase is an Invoke or CallBr instruction.
   CallInst *GuardCheck =
-      B.CreateCall(GuardFnType, GuardCheckLoad, {CalledOperand}, Bundles);
+      B.CreateCall(GuardFnType, GuardCheckCallee, {CalledOperand}, Bundles);
 
   // Ensure that the first argument is passed in the correct register
   // (e.g. ECX on 32-bit X86 targets).
@@ -195,7 +202,10 @@ void CFGuardImpl::insertCFGuardDispatch(CallBase *CB) {
   Type *CalledOperandType = CalledOperand->getType();
 
   // Load the global as a pointer to a function of the same type.
-  LoadInst *GuardDispatchLoad = B.CreateLoad(CalledOperandType, GuardFnGlobal);
+  Value *GuardDispatchCallee =
+      CallGuardFunctionDirectly
+          ? GuardFnGlobal
+          : B.CreateLoad(CalledOperandType, GuardFnGlobal);
 
   // Add the original call target as a cfguardtarget operand bundle.
   SmallVector<llvm::OperandBundleDef, 1> Bundles;
@@ -208,7 +218,7 @@ void CFGuardImpl::insertCFGuardDispatch(CallBase *CB) {
   CallBase *NewCB = CallBase::Create(CB, Bundles, CB->getIterator());
 
   // Change the target of the call to be the guard dispatch function.
-  NewCB->setCalledOperand(GuardDispatchLoad);
+  NewCB->setCalledOperand(GuardDispatchCallee);
 
   // Replace the original call/invoke with the new instruction.
   CB->replaceAllUsesWith(NewCB);
@@ -246,22 +256,40 @@ bool CFGuardImpl::doInitialization(Module &M) {
     break;
   }
 
+  // Determine how to call the guard function.
+  if (auto *CI = mdconst::dyn_extract_or_null<ConstantInt>(
+          M.getModuleFlag("cfguard-call-kind"))) {
+    ControlFlowGuardCallKind CallKindOverride =
+        static_cast<ControlFlowGuardCallKind>(CI->getZExtValue());
+    CallGuardFunctionDirectly =
+        (CallKindOverride == ControlFlowGuardCallKind::Direct);
+  }
+
   // Set up prototypes for the guard check and dispatch functions.
   GuardFnType =
       FunctionType::get(Type::getVoidTy(M.getContext()),
                         {PointerType::getUnqual(M.getContext())}, false);
-  GuardFnPtrType = PointerType::get(M.getContext(), 0);
+  if (CallGuardFunctionDirectly) {
+    StringRef GuardFnName = GuardMechanism == Mechanism::Check
+                                ? GuardCheckDirectFunctionName
+                                : GuardDispatchDirectFunctionName;
+    GuardFnGlobal = Function::Create(GuardFnType, Function::ExternalLinkage,
+                                     GuardFnName, &M);
+  } else {
+    GuardFnIndirectPtrType = PointerType::get(M.getContext(), 0);
 
-  StringRef GuardFnName = GuardMechanism == Mechanism::Check
-                              ? GuardCheckFunctionName
-                              : GuardDispatchFunctionName;
-  GuardFnGlobal = M.getOrInsertGlobal(GuardFnName, GuardFnPtrType, [&] {
-    auto *Var = new GlobalVariable(M, GuardFnPtrType, false,
-                                   GlobalVariable::ExternalLinkage, nullptr,
-                                   GuardFnName);
-    Var->setDSOLocal(true);
-    return Var;
-  });
+    StringRef GuardFnName = GuardMechanism == Mechanism::Check
+                                ? GuardCheckIndirectFunctionName
+                                : GuardDispatchIndirectFunctionName;
+    GuardFnGlobal =
+        M.getOrInsertGlobal(GuardFnName, GuardFnIndirectPtrType, [&] {
+          auto *Var = new GlobalVariable(M, GuardFnIndirectPtrType, false,
+                                         GlobalVariable::ExternalLinkage,
+                                         nullptr, GuardFnName);
+          Var->setDSOLocal(true);
+          return Var;
+        });
+  }
 
   return true;
 }
@@ -321,5 +349,5 @@ bool llvm::isCFGuardDispatchCall(const CallBase *CB) {
 
 bool llvm::isCFGuardDispatchFunction(const GlobalValue *GV) {
   return GV->getLinkage() == GlobalValue::ExternalLinkage &&
-    GV->getName() == GuardDispatchFunctionName;
+         GV->getName() == GuardDispatchIndirectFunctionName;
 }

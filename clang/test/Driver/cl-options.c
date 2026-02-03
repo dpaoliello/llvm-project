@@ -853,4 +853,9 @@
 // RUN: %clang_cl /d2guardcfgdispatch- /c -### -- %s 2>&1 | FileCheck %s --check-prefix=GUARDCFGDISPATCHNEG
 // GUARDCFGDISPATCHNEG: -fwin-cfg-mechanism=check
 
+// RUN: %clang_cl /d2guardcfgfuncptr /c -### -- %s 2>&1 | FileCheck %s --check-prefix=GUARDCFGFUNCPTR
+// GUARDCFGFUNCPTR: -fwin-cfg-call-kind=indirect
+
+// RUN: %clang_cl /d2guardcfgfuncptr- /c -### -- %s 2>&1 | FileCheck %s --check-prefix=GUARDCFGFUNCPTRNEG
+// GUARDCFGFUNCPTRNEG: -fwin-cfg-call-kind=direct
 void f(void) { }

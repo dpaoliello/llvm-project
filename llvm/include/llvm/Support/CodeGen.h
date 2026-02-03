@@ -190,6 +190,12 @@ namespace llvm {
     Dispatch = 2,
   };
 
+  enum class ControlFlowGuardCallKind {
+    Default = 0,
+    Direct = 1,
+    Indirect = 2,
+  };
+
   } // namespace llvm
 
 #endif

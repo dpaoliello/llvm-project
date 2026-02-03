@@ -1155,6 +1155,13 @@ void CodeGenModule::Release() {
         llvm::Module::Warning, "cfguard-mechanism",
         static_cast<unsigned>(CodeGenOpts.getWinControlFlowGuardMechanism()));
   }
+  if (CodeGenOpts.getWinControlFlowGuardCallKind() !=
+      llvm::ControlFlowGuardCallKind::Default) {
+    // Specify the Control Flow Guard call kind to use on Windows.
+    getModule().addModuleFlag(
+        llvm::Module::Warning, "cfguard-call-kind",
+        static_cast<unsigned>(CodeGenOpts.getWinControlFlowGuardCallKind()));
+  }
   if (CodeGenOpts.EHContGuard) {
     // Function ID tables for EH Continuation Guard.
     getModule().addModuleFlag(llvm::Module::Warning, "ehcontguard", 1);

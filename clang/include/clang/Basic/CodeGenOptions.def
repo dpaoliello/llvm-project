@@ -509,6 +509,11 @@ ENUM_CODEGENOPT(WinX64EHUnwindV2, WinX64EHUnwindV2Mode,
 ENUM_CODEGENOPT(WinControlFlowGuardMechanism, ControlFlowGuardMechanism,
                 2, ControlFlowGuardMechanism::Automatic, Benign)
 
+/// Controls if the Control Flow Guard (CFG) checker is called directly or
+/// indirectly.
+ENUM_CODEGENOPT(WinControlFlowGuardCallKind, ControlFlowGuardCallKind,
+                2, ControlFlowGuardCallKind::Default, Benign)
+
 /// FIXME: Make DebugOptions its own top-level .def file.
 #include "DebugOptions.def"
 

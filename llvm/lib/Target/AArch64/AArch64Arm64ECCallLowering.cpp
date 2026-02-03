@@ -79,7 +79,8 @@ private:
   ControlFlowGuardMode CFGuardModuleFlag = ControlFlowGuardMode::Disabled;
   FunctionType *GuardFnType = nullptr;
   FunctionType *DispatchFnType = nullptr;
-  Constant *GuardFnCFGlobal = nullptr;
+  Value *GuardFnCFGlobal = nullptr;
+  bool CallCFGuardFunctionDirectly = false;
   Constant *GuardFnGlobal = nullptr;
   Constant *DispatchFnGlobal = nullptr;
   Module *M = nullptr;
@@ -758,20 +759,20 @@ void AArch64Arm64ECCallLowering::lowerCall(CallBase *CB) {
     Bundles.push_back(OperandBundleDef(*Bundle));
 
   // Load the global symbol as a pointer to the check function.
-  Value *GuardFn;
+  Value *GuardFnCallee;
   if ((CFGuardModuleFlag == ControlFlowGuardMode::Enabled) &&
-      !CB->hasFnAttr("guard_nocf"))
-    GuardFn = GuardFnCFGlobal;
-  else
-    GuardFn = GuardFnGlobal;
-  LoadInst *GuardCheckLoad = B.CreateLoad(PtrTy, GuardFn);
+      !CB->hasFnAttr("guard_nocf")) {
+    GuardFnCallee = CallCFGuardFunctionDirectly
+                        ? GuardFnCFGlobal
+                        : B.CreateLoad(PtrTy, GuardFnCFGlobal);
+  } else
+    GuardFnCallee = B.CreateLoad(PtrTy, GuardFnGlobal);
 
   // Create new call instruction. The CFGuard check should always be a call,
   // even if the original CallBase is an Invoke or CallBr instruction.
   Function *Thunk = buildExitThunk(CB->getFunctionType(), CB->getAttributes());
   CallInst *GuardCheck =
-      B.CreateCall(GuardFnType, GuardCheckLoad, {CalledOperand, Thunk},
-                   Bundles);
+      B.CreateCall(GuardFnType, GuardFnCallee, {CalledOperand, Thunk}, Bundles);
   Value *GuardCheckDest = B.CreateExtractValue(GuardCheck, 0);
   Value *GuardFinalDest = B.CreateExtractValue(GuardCheck, 1);
 
@@ -798,8 +799,8 @@ bool AArch64Arm64ECCallLowering::runOnModule(Module &Mod) {
   // Check if this module has the cfguard flag and read its value.
   CFGuardModuleFlag = M->getControlFlowGuardMode();
 
-  // Warn if the module flag requests an unsupported CFGuard mechanism.
   if (CFGuardModuleFlag == ControlFlowGuardMode::Enabled) {
+    // Warn if the module flag requests an unsupported CFGuard mechanism.
     if (auto *CI = mdconst::dyn_extract_or_null<ConstantInt>(
             Mod.getModuleFlag("cfguard-mechanism"))) {
       auto MechanismOverride =
@@ -811,6 +812,15 @@ bool AArch64Arm64ECCallLowering::runOnModule(Module &Mod) {
                                   "is supported for Arm64EC",
                                   DS_Warning));
     }
+
+    // Determine how to call the guard function.
+    if (auto *CI = mdconst::dyn_extract_or_null<ConstantInt>(
+            Mod.getModuleFlag("cfguard-call-kind"))) {
+      ControlFlowGuardCallKind CallKindOverride =
+          static_cast<ControlFlowGuardCallKind>(CI->getZExtValue());
+      CallCFGuardFunctionDirectly =
+          (CallKindOverride == ControlFlowGuardCallKind::Direct);
+    }
   }
 
   PtrTy = PointerType::getUnqual(M->getContext());
@@ -820,7 +830,12 @@ bool AArch64Arm64ECCallLowering::runOnModule(Module &Mod) {
   GuardFnType =
       FunctionType::get(StructType::get(PtrTy, PtrTy), {PtrTy, PtrTy}, false);
   DispatchFnType = FunctionType::get(PtrTy, {PtrTy, PtrTy, PtrTy}, false);
-  GuardFnCFGlobal = M->getOrInsertGlobal("__os_arm64x_check_icall_cfg", PtrTy);
+  GuardFnCFGlobal =
+      CallCFGuardFunctionDirectly
+          ? static_cast<Value *>(
+                Function::Create(GuardFnType, GlobalValue::ExternalLinkage,
+                                 "__os_arm64x_direct_check_icall_cfg", M))
+          : M->getOrInsertGlobal("__os_arm64x_check_icall_cfg", PtrTy);
   GuardFnGlobal = M->getOrInsertGlobal("__os_arm64x_check_icall", PtrTy);
   DispatchFnGlobal = M->getOrInsertGlobal("__os_arm64x_dispatch_call", PtrTy);
 

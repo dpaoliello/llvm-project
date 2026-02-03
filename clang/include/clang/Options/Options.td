@@ -2279,6 +2279,14 @@ def win_cfg_mechanism
       NormalizedValues<["Automatic", "Dispatch", "Check"]>,
       NormalizedValuesScope<"llvm::ControlFlowGuardMechanism">,
       MarshallingInfoEnum<CodeGenOpts<"WinControlFlowGuardMechanism">, "Automatic">;
+def win_cfg_call_kind
+    : Joined<["-"], "fwin-cfg-call-kind=">, Group<f_Group>,
+    Visibility<[ClangOption, CC1Option]>,
+      HelpText<"Controls if the Control Flow Guard checker is called directly or indirectly">,
+      Values<"default,direct,indirect">,
+      NormalizedValues<["Default", "Direct", "Indirect"]>,
+      NormalizedValuesScope<"llvm::ControlFlowGuardCallKind">,
+      MarshallingInfoEnum<CodeGenOpts<"WinControlFlowGuardCallKind">, "Default">;
 def fexcess_precision_EQ : Joined<["-"], "fexcess-precision=">, Group<f_Group>,
   Visibility<[ClangOption, CLOption]>,
   HelpText<"Allows control over excess precision on targets where native "
@@ -9423,6 +9431,10 @@ def _SLASH_d2guardcfgdispatch : CLFlag<"d2guardcfgdispatch">,
   HelpText<"Use the dispatch mechanism to call the Control Flow Guard checker">;
 def _SLASH_d2guardcfgdispatch_ : CLFlag<"d2guardcfgdispatch-">,
   HelpText<"Use the check mechanism to call the Control Flow Guard checker">;
+def _SLASH_d2guardcfgfuncptr : CLFlag<"d2guardcfgfuncptr">,
+  HelpText<"Use an indirect call to call the Control Flow Guard checker">;
+def _SLASH_d2guardcfgfuncptr_ : CLFlag<"d2guardcfgfuncptr-">,
+  HelpText<"Use a direct call to call the Control Flow Guard checker">;
 def _SLASH_EH : CLJoined<"EH">, HelpText<"Set exception handling model">;
 def _SLASH_EP : CLFlag<"EP">,
   HelpText<"Disable linemarker output and preprocess to stdout">;

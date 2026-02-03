@@ -61,6 +61,7 @@ entry:
 ; CHECK-NEXT:     callq   *%rax
 ; CHECK-NEXT:     nopl    (%rax)
 ; CHECK-NEXT:     movq    %rcx, %rax
+; CHECK-NOT:      rax
 ; CHECK:        .Limpcall8:
 ; CHECK-NEXT:     rex64 jmpq      *%rax
 ; CHECK-NEXT:     int3
@@ -79,6 +80,7 @@ entry:
 ; CHECK-NEXT:     callq   *%rax
 ; CHECK-NEXT:     nopl    (%rax)
 ; CHECK-NEXT:     movq    %rcx, %rax
+; CHECK-NOT:      rax
 ; CHECK:        .Limpcall10:
 ; CHECK-NEXT:     rex64 jmpq      *%rax
 ; CHECK-NEXT:     int3
@@ -115,7 +117,8 @@ entry:
 ; CHECK-NEXT   .long   6
 ; CHECK-NEXT   .secoffset      .Limpcall10
 
-!llvm.module.flags = !{!0, !1, !2}
+!llvm.module.flags = !{!0, !1, !2, !3}
 !0 = !{i32 1, !"import-call-optimization", i32 1}
 !1 = !{i32 2, !"cfguard", i32 2}
 !2 = !{i32 2, !"cfguard-mechanism", i32 1}
+!3 = !{i32 2, !"cfguard-call-kind", i32 2}

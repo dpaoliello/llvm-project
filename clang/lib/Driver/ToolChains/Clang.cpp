@@ -7460,6 +7460,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // Control Flow Guard mechanism for Windows.
   Args.AddLastArg(CmdArgs, options::OPT_win_cfg_mechanism);
 
+  // Control Flow Guard call kind for Windows.
+  Args.AddLastArg(CmdArgs, options::OPT_win_cfg_call_kind);
+
   // C++ "sane" operator new.
   Args.addOptOutFlag(CmdArgs, options::OPT_fassume_sane_operator_new,
                      options::OPT_fno_assume_sane_operator_new);
@@ -8565,6 +8568,12 @@ void Clang::AddClangCLArgs(const ArgList &Args, types::ID InputType,
     CmdArgs.push_back("-fwin-cfg-mechanism=check");
   else if (Args.hasArg(options::OPT__SLASH_d2guardcfgdispatch))
     CmdArgs.push_back("-fwin-cfg-mechanism=dispatch");
+
+  // Control Flow Guard call kind for Windows.
+  if (Args.hasArg(options::OPT__SLASH_d2guardcfgfuncptr_))
+    CmdArgs.push_back("-fwin-cfg-call-kind=direct");
+  else if (Args.hasArg(options::OPT__SLASH_d2guardcfgfuncptr))
+    CmdArgs.push_back("-fwin-cfg-call-kind=indirect");
 
   for (const auto &FuncOverride :
        Args.getAllArgValues(options::OPT__SLASH_funcoverride)) {
