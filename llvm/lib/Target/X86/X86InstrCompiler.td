@@ -1383,7 +1383,11 @@ def : Pat<(X86tcret ptr_rc_tailcall:$dst, timm:$off),
 
 def : Pat<(X86tcret GR64_TCW64:$dst, timm:$off),
           (TCRETURN_WIN64ri GR64_TCW64:$dst, timm:$off)>,
-          Requires<[IsWin64CCFunc, NotUseIndirectThunkCalls]>;
+          Requires<[IsWin64CCFunc, NotUseIndirectThunkCalls, ImportCallOptimizationDisabled]>;
+
+def : Pat<(X86tcret GR64_TCW64:$dst, timm:$off),
+          (TCRETURNri64_ImpCall GR64_TCW64:$dst, timm:$off)>,
+          Requires<[IsWin64CCFunc, NotUseIndirectThunkCalls, ImportCallOptimizationEnabled]>;
 
 // Don't fold loads into X86tcret requiring too many regs.
 // There wouldn't be enough scratch registers for base+index.

@@ -3526,13 +3526,16 @@ bool X86FastISel::fastLowerCall(CallLoweringInfo &CLI) {
     unsigned CallOpc = Is64Bit ? X86::CALL64r : X86::CALL32r;
 
     const Module *M = FuncInfo.MF->getFunction().getParent();
-    if (CalleeOp != X86::RAX && Is64Bit &&
-        M->getModuleFlag("import-call-optimization")) {
-      // Import call optimization requires all indirect calls to be via RAX.
-      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD,
-              TII.get(TargetOpcode::COPY), X86::RAX)
-          .addReg(CalleeOp);
-      CalleeOp = X86::RAX;
+    if (Is64Bit && M->getModuleFlag("import-call-optimization")) {
+      // Import call optimization requires all indirect calls to use RAX.
+      // Use the CALL64r_ImpCall pseudo which guarantees this when expanded.
+      if (CalleeOp != X86::RAX) {
+        BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD,
+                TII.get(TargetOpcode::COPY), X86::RAX)
+            .addReg(CalleeOp);
+        CalleeOp = X86::RAX;
+      }
+      CallOpc = X86::CALL64r_ImpCall;
     }
 
     MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(CallOpc))
