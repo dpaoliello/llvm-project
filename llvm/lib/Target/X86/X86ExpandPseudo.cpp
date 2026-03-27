@@ -290,6 +290,7 @@ bool X86ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
   case X86::TCRETURNdi64:
   case X86::TCRETURNdi64cc:
   case X86::TCRETURNri64:
+  case X86::TCRETURNri64_ImpCall:
   case X86::TCRETURNmi64:
   case X86::TCRETURN_WINmi64: {
     bool isMem = Opcode == X86::TCRETURNmi || Opcode == X86::TCRETURNmi64 ||
@@ -365,8 +366,16 @@ bool X86ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
       MachineInstrBuilder MIB = BuildMI(MBB, MBBI, DL, TII->get(Op));
       for (unsigned i = 0; i != X86::AddrNumOperands; ++i)
         MIB.add(MBBI->getOperand(i));
-    } else if (Opcode == X86::TCRETURNri64 || Opcode == X86::TCRETURN_WIN64ri) {
+    } else if (Opcode == X86::TCRETURNri64 ||
+               Opcode == X86::TCRETURNri64_ImpCall ||
+               Opcode == X86::TCRETURN_WIN64ri) {
       JumpTarget.setIsKill();
+      if (Opcode == X86::TCRETURNri64_ImpCall &&
+          JumpTarget.getReg() != X86::RAX) {
+        BuildMI(MBB, MBBI, DL, TII->get(X86::MOV64rr), X86::RAX)
+            .addReg(JumpTarget.getReg());
+        JumpTarget.setReg(X86::RAX);
+      }
       BuildMI(MBB, MBBI, DL,
               TII->get(IsX64 ? X86::TAILJMPr64_REX : X86::TAILJMPr64))
           .add(JumpTarget);
@@ -719,6 +728,16 @@ bool X86ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
   case X86::CALL64m_RVMARKER:
     expandCALL_RVMARKER(MBB, MBBI);
     return true;
+  case X86::CALL64r_ImpCall: {
+    Register CalleeReg = MI.getOperand(0).getReg();
+    if (CalleeReg != X86::RAX) {
+      BuildMI(MBB, MBBI, DL, TII->get(X86::MOV64rr), X86::RAX)
+          .addReg(CalleeReg);
+    }
+    MI.setDesc(TII->get(X86::CALL64r));
+    MI.getOperand(0).setReg(X86::RAX);
+    return true;
+  }
   case X86::ADD32mi_ND:
   case X86::ADD64mi32_ND:
   case X86::SUB32mi_ND:

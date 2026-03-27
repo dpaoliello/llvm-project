@@ -2371,8 +2371,8 @@ void X86AsmPrinter::emitInstruction(const MachineInstr *MI) {
     if (EnableImportCallOptimization) {
       if (MI->getOperand(0).getReg() != X86::RAX)
         reportFatalInternalError(
-            "Indirect tail calls with impcall enabled must go through RAX (as "
-            "enforced by TCRETURNImpCallri64)");
+            "Indirect tail calls with import call optimization enabled must "
+            "go through RAX (as enforced by TCRETURNri64_ImpCall)");
       emitLabelAndRecordForImportCallOptimization(
           IMAGE_RETPOLINE_AMD64_INDIR_BR_REX);
       MCInst TmpInst;
@@ -2596,7 +2596,7 @@ void X86AsmPrinter::emitInstruction(const MachineInstr *MI) {
     if (EnableImportCallOptimization && isImportedFunction(MI->getOperand(0)))
       reportFatalInternalError(
           "Calls to imported functions with import call optimization "
-          "should be lowered to CALL64m via CALL64_ImpCall");
+          "should be lowered to CALL64m");
 
     break;
 

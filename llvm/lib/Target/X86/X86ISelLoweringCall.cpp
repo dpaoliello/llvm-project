@@ -2572,7 +2572,9 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
         GA->getGlobal(), dl, GA->getValueType(0), 0, X86II::MO_NO_FLAG);
   } else if (M->getModuleFlag("import-call-optimization")) {
     // When import call optimization is enabled, all register indirect calls
-    // must use RAX.
+    // must use RAX. Adding this CopyToReg to the chain here also ensures that
+    // any load of the callee value is separated from the call in the DAG,
+    // preventing scheduling cycles.
     Chain = DAG.getCopyToReg(Chain, dl, X86::RAX, Callee, InGlue);
     InGlue = Chain.getValue(1);
     Callee = DAG.getRegister(X86::RAX, Callee.getValueType());
