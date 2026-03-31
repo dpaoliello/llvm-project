@@ -2572,9 +2572,14 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
         GA->getGlobal(), dl, GA->getValueType(0), 0, X86II::MO_NO_FLAG);
   } else if (M->getModuleFlag("import-call-optimization")) {
     // When import call optimization is enabled, all register indirect calls
-    // must use RAX. Adding this CopyToReg to the chain here also ensures that
-    // any load of the callee value is separated from the call in the DAG,
-    // preventing scheduling cycles.
+    // must use RAX. The RAX requirement is structurally enforced by the
+    // CALL64r_ImpCall/TCRETURNri64_ImpCall pseudos (selected via tablegen
+    // predicates), which are expanded after post-regalloc optimizations.
+    //
+    // This CopyToReg is still needed to break a DAG scheduling cycle: without
+    // it, when a function pointer is loaded from memory and then called, the
+    // load gets chained after argument CopyToReg nodes (via glue), creating a
+    // cycle with the call's data dependency on the load result.
     Chain = DAG.getCopyToReg(Chain, dl, X86::RAX, Callee, InGlue);
     InGlue = Chain.getValue(1);
     Callee = DAG.getRegister(X86::RAX, Callee.getValueType());
